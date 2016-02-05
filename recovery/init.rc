@@ -16,9 +16,12 @@ on init
     mkdir /preload
     mkdir /efs
     mount /tmp /tmp tmpfs
-    insmod /system/lib/exfat_core.ko
-    insmod /system/lib/exfat_fs.ko
+    ulimit -c unlimited
+# ko files for exfat
+    #insmod /system/lib/modules/exfat_core.ko
+    #insmod /system/lib/modules/exfat_fs.ko
     write /sys/devices/platform/s5p-dsim.0/s6evr02/backlight/panel/brightness 180
+    write /proc/sys/vm/overcommit_memory 1
 
 on boot
 
@@ -50,6 +53,25 @@ on property:adb.recovery=1
     write /sys/class/android_usb/android0/iProduct $ro.product.model
     write /sys/class/android_usb/android0/iSerial $ro.serialno
     start adbd
+
+on property:sys.usb.config=none
+	stop adbd
+	write /sys/class/android_usb/android0/enable 0
+	write /sys/class/android_usb/android0/bDeviceClass 0
+
+on property:sys.usb.config=mtp,adb
+	stop adbd
+	write /sys/class/android_usb/android0/enable 0
+	write /sys/class/android_usb/android0/functions mtp,adb
+	write /sys/class/android_usb/android0/enable 1
+	start adbd
+
+on property:sys.usb.config=adb
+	stop adbd
+	write /sys/class/android_usb/android0/enable 0
+	write /sys/class/android_usb/android0/functions adb
+	write /sys/class/android_usb/android0/enable ${service.adb.root}
+	start adbd
 
 # Restart adbd so it can run as root
 on property:service.adb.root=1
